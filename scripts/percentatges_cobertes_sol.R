@@ -1,25 +1,30 @@
+source("./scripts/get_data.R")
+library(raster)
+library(sf)
+library(parallel)
+library(snow)
+
 
 ini <- function(radius){
   print(paste(Sys.time(), "ini", sep="-"))
   
-  source("./scripts/get_data.R")
-  library(raster)
-  library(sf)
-  library(parallel)
-  
+ 
   ifn4 <- get_ifn4()
   mcsc_2018 <- get_mcsc_2018()
-  extr <- extract(mcsc_2018, ifn4, buffer=radius)
   
+  n.cores <- detectCores()
+  
+  print(paste(Sys.time(), "extract", sep="-"))
   time <- Sys.time()
   
-  prop <- lapply(lapply(extr,table),calc_prop)
-  
+  #beginCluster(n.cores)
+  extr <- extract(mcsc_2018, ifn4, buffer=radius)
+  #endCluster()
+
   print(as.numeric(difftime(Sys.time(),time,units="secs")))
   
   time <- Sys.time()
   
-  n.cores <- detectCores()
   clust <- makeCluster(n.cores)
   clusterExport(clust, c("extr","fill_missing_categories"))
   prop <- parLapply(clust, extr, table)
