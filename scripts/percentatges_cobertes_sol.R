@@ -1,4 +1,7 @@
 source("./scripts/get_data.R")
+source("./scripts/project.R")
+
+
 library(raster)
 library(sf)
 library(parallel)
@@ -6,7 +9,7 @@ library(snow)
 library(sp)
 library(rgeos)
 library(exactextractr)
-
+library(SpaDES)
 
 
 ini <- function(){
@@ -20,6 +23,8 @@ ini_ <- function(radius){
   print(radius)
  
   ifn4 <- get_ifn4()
+  ifn4 <- as(ifn4,"Spatial")
+  ifn4 <- project_EPSG_25831_vect(ifn4)
   print(paste(Sys.time(), "extract", sep="-"))
   
   for(year in c(2009,2018)){
@@ -28,36 +33,45 @@ ini_ <- function(radius){
     }else{
       mcsc <- get_mcsc_2018()
     }
+    mcsc <- project_EPSG_25831_rast(mcsc)
     
     time <- Sys.time()
-    extr <- exact_extract(mcsc, gBuffer(as(ifn4,"Spatial"),byid=T,width=radius))
+    if (radius>500){
+      extr <- exact_extract(mcsc, gBuffer(ifn4,byid=T,width=radius))
+    }else{
+      mcsc_spl <- splitRaster(mcsc, 2,2) 
+    }
+    
     print(as.numeric(difftime(Sys.time(),time,units="secs")))
     
     rm(mcsc)
     gc()
     
     time <- Sys.time()
-    # n.cores <- detectCores()
-    # if(radius==100){
-    #   clust <- makeCluster(3)
-    # }else{
-    #   clust <- makeCluster(2)
-    # }
-    # 
-    # clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
-    # prop <- parLapply(clust, extr, function(ex){table(ex$value)})
-    # prop <- parLapply(clust, prop, calc_prop)
-    # stopCluster(clust)
+    n.cores <- detectCores()
+    if(radius==100){
+      clust <- makeCluster(3)
+    }else{
+      clust <- makeCluster(2)
+    }
+
+    clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
+    prop <- parLapply(clust, extr, function(ex){table(ex$value)})
+    prop <- parLapply(clust, prop, calc_prop)
+    stopCluster(clust)
    
-    prop <- lapply(extr, function(ex){table(ex$value)})
-    prop <- lapply(prop, calc_prop)
-    
-    print(as.numeric(difftime(Sys.time(),time,units="secs")))
+    # prop <- lapply(extr, function(ex){table(ex$value)})
+    # prop <- lapply(prop, calc_prop)
+    # 
+    # print(as.numeric(difftime(Sys.time(),time,units="secs")))
    
     rm(extr)
     gc()
     
     names(prop) <- ifn4$plot_id
+    rm(ifn4)
+    gc()
+    
     prop <- do.call(rbind, prop)
     if(year==2009){
       write.csv(prop,paste("./output/perc_cob_sol_ifn4_2009_",radius,"m_raw.csv", sep=""))
