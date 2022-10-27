@@ -18,57 +18,89 @@ ini <- function(){
   sapply(radius, ini_)
 }
 
+
+
 ini_ <- function(radius){
   print(paste(Sys.time(), "ini", sep="-"))
   print(radius)
  
-  ifn4 <- get_ifn4()
-  ifn4 <- as(ifn4,"Spatial")
-  ifn4 <- project_EPSG_25831_vect(ifn4)
+ 
+  if(radius<500){
+    ifn4 <- get_ifn4()
+    ifn4 <- as(ifn4,"Spatial")
+    ifn4 <- project_EPSG_25831_vect(ifn4)
+  } else {
+    ifn4 <- get_ifn4_all_prov()
+    plot_ids <- lapply(ifn4, get_plot_ids)
+    ifn4 <- lapply(ifn4, as, "Spatial")
+    ifn4 <- lapply(ifn4, SpatialPoints)
+    ifn4 <- lapply(ifn4, project_EPSG_25831_vect)
+  }
+  
   print(paste(Sys.time(), "extract", sep="-"))
   
   for(year in c(2009,2018)){
     if (year==2009){
-      mcsc <- get_mcsc_2009()
+      if (radius<500){
+        mcsc <- project_EPSG_25831_rast(get_mcsc_2009())
+      }
+      else{
+        mcsc <- lapply(get_mcsc_2009_all_prov(), project_EPSG_25831_rast)
+      }
     }else{
-      mcsc <- get_mcsc_2018()
+      if (radius<500){
+        mcsc <- project_EPSG_25831_rast(get_mcsc_2018())
+      }
+      else{
+        mcsc <- lapply(get_mcsc_2018_all_prov(), project_EPSG_25831_rast)
+      }
     }
-    mcsc <- project_EPSG_25831_rast(mcsc)
     
-    time <- Sys.time()
-    if (radius>500){
+    lapply(ifn4, gBuffer, byid=T,width=radius)
+    
+    if (radius<500){
       extr <- exact_extract(mcsc, gBuffer(ifn4,byid=T,width=radius))
     }else{
-      mcsc_spl <- splitRaster(mcsc, 2,2) 
+      extr <- mapply(exact_extract, mcsc, lapply(ifn4, gBuffer, byid=T,width=radius))
     }
-    
-    print(as.numeric(difftime(Sys.time(),time,units="secs")))
     
     rm(mcsc)
     gc()
+    
     
     time <- Sys.time()
     n.cores <- detectCores()
     if(radius==100){
       clust <- makeCluster(3)
-    }else{
+      clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
+      prop <- parLapply(clust, extr, function(e){table(e$value)})
+      prop <- parLapply(clust, prop, calc_prop)
+      stopCluster(clust)
+      names(prop) <- ifn4$plot_id
+    }else if (radius < 500){
       clust <- makeCluster(2)
-    }
+      clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
+      prop <- parLapply(clust, extr, function(e){table(e$value)})
+      prop <- parLapply(clust, prop, calc_prop)
+      stopCluster(clust)
+      names(prop) <- ifn4$plot_id
+    }else{
+      prop <- list()
+      for (i in 1:length(extr)){
+        ex <- extr[[i]]
+        clust <- makeCluster(2)
+        clusterExport(clust, c("ex","fill_missing_categories"), envir = environment())
+        pr <- parLapply(clust, ex, function(e){table(e$value)})
+        pr <- parLapply(clust, pr, calc_prop)
+        stopCluster(clust)
+        names(pr) <- plot_ids[[i]]
+        prop <- append(prop, pr)
+      }
+      rm(ex)
+      rm(pr)
+      prop <- do.call(rbind, prop)
+    } 
 
-    clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
-    prop <- parLapply(clust, extr, function(ex){table(ex$value)})
-    prop <- parLapply(clust, prop, calc_prop)
-    stopCluster(clust)
-   
-    # prop <- lapply(extr, function(ex){table(ex$value)})
-    # prop <- lapply(prop, calc_prop)
-    # 
-    # print(as.numeric(difftime(Sys.time(),time,units="secs")))
-   
-    rm(extr)
-    gc()
-    
-    names(prop) <- ifn4$plot_id
     rm(ifn4)
     gc()
     
@@ -133,3 +165,7 @@ reclass <- function(df){
   #df[is.na(df)] <- 0
   df
 } 
+
+get_plot_ids <- function(ifn4){
+  ifn4$plot_id
+}
