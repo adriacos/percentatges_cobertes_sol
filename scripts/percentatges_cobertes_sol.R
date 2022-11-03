@@ -56,8 +56,6 @@ ini_ <- function(radius){
       }
     }
     
-    lapply(ifn4, gBuffer, byid=T,width=radius)
-    
     if (radius<500){
       extr <- exact_extract(mcsc, gBuffer(ifn4,byid=T,width=radius))
     }else{
