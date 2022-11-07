@@ -23,101 +23,122 @@ ini <- function(){
 ini_ <- function(radius){
   print(paste(Sys.time(), "ini", sep="-"))
   print(radius)
- 
- 
+  
   if(radius<500){
     ifn4 <- get_ifn4()
     ifn4 <- as(ifn4,"Spatial")
     ifn4 <- project_EPSG_25831_vect(ifn4)
-  } else {
-    ifn4 <- get_ifn4_all_prov()
-    plot_ids <- lapply(ifn4, get_plot_ids)
-    ifn4 <- lapply(ifn4, as, "Spatial")
-    ifn4 <- lapply(ifn4, SpatialPoints)
-    ifn4 <- lapply(ifn4, project_EPSG_25831_vect)
-  }
-  
-  print(paste(Sys.time(), "extract", sep="-"))
-  
-  for(year in c(2009,2018)){
-    if (year==2009){
-      if (radius<500){
+    
+    for(year in c(2009,2018)){
+      if (year==2009){
         mcsc <- project_EPSG_25831_rast(get_mcsc_2009())
-      }
-      else{
-        mcsc <- lapply(get_mcsc_2009_all_prov(), project_EPSG_25831_rast)
-      }
-    }else{
-      if (radius<500){
+      }else{
         mcsc <- project_EPSG_25831_rast(get_mcsc_2018())
       }
-      else{
-        mcsc <- lapply(get_mcsc_2018_all_prov(), project_EPSG_25831_rast)
-      }
-    }
-    
-    if (radius<500){
       extr <- exact_extract(mcsc, gBuffer(ifn4,byid=T,width=radius))
-    }else{
-      extr <- mapply(exact_extract, mcsc, lapply(ifn4, gBuffer, byid=T,width=radius))
-    }
-    
-    rm(mcsc)
-    gc()
-    
-    
-    time <- Sys.time()
-    n.cores <- detectCores()
-    if(radius==100){
-      clust <- makeCluster(3)
-      clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
-      prop <- parLapply(clust, extr, function(e){table(e$value)})
-      prop <- parLapply(clust, prop, calc_prop)
-      stopCluster(clust)
-      names(prop) <- ifn4$plot_id
-    }else if (radius < 500){
-      clust <- makeCluster(2)
-      clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
-      prop <- parLapply(clust, extr, function(e){table(e$value)})
-      prop <- parLapply(clust, prop, calc_prop)
-      stopCluster(clust)
-      names(prop) <- ifn4$plot_id
-    }else{
-      prop <- list()
-      for (i in 1:length(extr)){
-        ex <- extr[[i]]
-        clust <- makeCluster(2)
-        clusterExport(clust, c("ex","fill_missing_categories"), envir = environment())
-        pr <- parLapply(clust, ex, function(e){table(e$value)})
-        pr <- parLapply(clust, pr, calc_prop)
+      rm(mcsc)
+      gc()
+      
+      time <- Sys.time()
+      n.cores <- detectCores()
+      if(radius==100){
+        clust <- makeCluster(3)
+        clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
+        prop <- parLapply(clust, extr, function(e){table(e$value)})
+        prop <- parLapply(clust, prop, calc_prop)
         stopCluster(clust)
-        names(pr) <- plot_ids[[i]]
-        prop <- append(prop, pr)
+        names(prop) <- ifn4$plot_id
+      }else if (radius < 500){
+        clust <- makeCluster(2)
+        clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
+        prop <- parLapply(clust, extr, function(e){table(e$value)})
+        prop <- parLapply(clust, prop, calc_prop)
+        stopCluster(clust)
+        names(prop) <- ifn4$plot_id
       }
-      rm(ex)
-      rm(pr)
+      rm(ifn4)
+      gc()
+      
       prop <- do.call(rbind, prop)
-    } 
-
-    rm(ifn4)
-    gc()
-    
-    prop <- do.call(rbind, prop)
-    if(year==2009){
-      write.csv(prop,paste("./output/perc_cob_sol_ifn4_2009_",radius,"m_raw.csv", sep=""))
-    }else{
-      write.csv(prop,paste("./output/perc_cob_sol_ifn4_2018_",radius,"m_raw.csv", sep=""))
+      if(year==2009){
+        write.csv(prop,paste("./output/perc_cob_sol_ifn4_2009_",radius,"m_raw.csv", sep=""))
+      }else{
+        write.csv(prop,paste("./output/perc_cob_sol_ifn4_2018_",radius,"m_raw.csv", sep=""))
+      }
+      prop <- reclass(prop)
+      if (year==2009){
+        write.csv(prop,paste("./output/perc_cob_sol_ifn4_2009_",radius,"m_recl.csv", sep=""))
+      }else{
+        write.csv(prop,paste("./output/perc_cob_sol_ifn4_2018_",radius,"m_recl.csv", sep=""))
+      }
+      rm(clust)
+      rm(prop)
+      gc()
     }
-    prop <- reclass(prop)
-    if (year==2009){
-      write.csv(prop,paste("./output/perc_cob_sol_ifn4_2009_",radius,"m_recl.csv", sep=""))
-    }else{
-      write.csv(prop,paste("./output/perc_cob_sol_ifn4_2018_",radius,"m_recl.csv", sep=""))
+  } else{
+    provs <- c("BCN", "TAR", "GIR", "LLE")
+    raw_provs_2009 <- list()
+    raw_provs_2018 <- list()
+    recl_provs_2009 <- list()
+    recl_provs_2018 <- list()
+    for(prov in provs){
+      if(prov=="BCN"){ifn4<-get_ifn4_BCN()}else if(prov=="TAR"){ifn4<-get_ifn4_TAR()}else if(prov=="GIR"){ifn4<-get_ifn4_GIR()}else if(prov=="LLE"){ifn4<-get_ifn4_LLE()}
+      ifn4 <- as(ifn4,"Spatial")
+      ifn4 <- project_EPSG_25831_vect(ifn4)
+      
+      for(year in c(2009,2018)){
+        if (year==2009){
+          if(prov=="BCN"){mcsc<-get_mcsc_2009_BCN()()}else if(prov=="TAR"){mcsc<-get_mcsc_2009_TAR()()}else if(prov=="GIR"){mcsc<-get_mcsc_2009_GIR()()}else if(prov=="LLE"){mcsc<-get_mcsc_2009_LLE()()}
+        }else{
+          if(prov=="BCN"){mcsc<-get_mcsc_2018_BCN()()}else if(prov=="TAR"){mcsc<-get_mcsc_2018_TAR()()}else if(prov=="GIR"){mcsc<-get_mcsc_2018_GIR()()}else if(prov=="LLE"){mcsc<-get_mcsc_2018_LLE()()}
+        }
+        mcsc <- project_EPSG_25831_rast(mcsc)
+        extr <- exact_extract(mcsc, gBuffer(ifn4,byid=T,width=radius))
+        rm(mcsc)
+        gc()
+        
+        clust <- makeCluster(3)
+        clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
+        prop <- parLapply(clust, extr, function(e){table(e$value)})
+        prop <- parLapply(clust, prop, calc_prop)
+        stopCluster(clust)
+        
+        names(prop) <- ifn4$plot_id
+        rm(ifn4)
+        gc()
+        
+        prop <- do.call(rbind, prop)
+        if(year==2009){
+          append(raw_provs_2009, prop)
+        }else{
+          append(raw_provs_2018, prop)
+        }
+        prop <- reclass(prop)
+        if (year==2009){
+          append(recl_provs_2009, prop)
+        }else{
+          append(recl_provs_2018, prop)
+        }
+        rm(clust)
+        rm(prop)
+        gc()
+      }
     }
-    rm(clust)
-    rm(prop)
+    raw_provs_2009 <- do.call(rbind(raw_provs_2009))
+    write.csv(prop,paste("./output/perc_cob_sol_ifn4_2009_", prov, "_", radius,"m_raw.csv", sep=""))
+    raw_provs_2018 <- do.call(rbind(raw_provs_2018))
+    write.csv(prop,paste("./output/perc_cob_sol_ifn4_2018_",prov, "_", radius,"m_raw.csv", sep=""))
+    recl_provs_2009 <- do.call(rbind(recl_provs_2009))
+    write.csv(prop,paste("./output/perc_cob_sol_ifn4_2009_",prov, "_", radius,"m_recl.csv", sep=""))
+    recl_provs_2018 <- do.call(rbind(recl_provs_2018))
+    write.csv(prop,paste("./output/perc_cob_sol_ifn4_2018_",prov, "_", radius,"m_recl.csv", sep=""))
+    rm(raw_provs_2009)
+    rm(raw_provs_2018)
+    rm(recl_provs_2009)
+    rm(recl_provs_2018)
     gc()
   }
+  print(paste(Sys.time(), "extract", sep="-"))
 }
 
 
