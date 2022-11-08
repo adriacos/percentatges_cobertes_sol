@@ -83,21 +83,23 @@ ini_ <- function(radius){
     recl_provs_2018 <- list()
     for(prov in provs){
       if(prov=="BCN"){ifn4<-get_ifn4_BCN()}else if(prov=="TAR"){ifn4<-get_ifn4_TAR()}else if(prov=="GIR"){ifn4<-get_ifn4_GIR()}else if(prov=="LLE"){ifn4<-get_ifn4_LLE()}
+      ifn4 <- st_cast(ifn4, "POINT")
       ifn4 <- as(ifn4,"Spatial")
+      #ifn4 <- SpatialPointsDataFrame(ifn4)
       ifn4 <- project_EPSG_25831_vect(ifn4)
       
       for(year in c(2009,2018)){
         if (year==2009){
-          if(prov=="BCN"){mcsc<-get_mcsc_2009_BCN()()}else if(prov=="TAR"){mcsc<-get_mcsc_2009_TAR()()}else if(prov=="GIR"){mcsc<-get_mcsc_2009_GIR()()}else if(prov=="LLE"){mcsc<-get_mcsc_2009_LLE()()}
+          if(prov=="BCN"){mcsc<-get_mcsc_2009_BCN()}else if(prov=="TAR"){mcsc<-get_mcsc_2009_TAR()}else if(prov=="GIR"){mcsc<-get_mcsc_2009_GIR()}else if(prov=="LLE"){mcsc<-get_mcsc_2009_LLE()}
         }else{
-          if(prov=="BCN"){mcsc<-get_mcsc_2018_BCN()()}else if(prov=="TAR"){mcsc<-get_mcsc_2018_TAR()()}else if(prov=="GIR"){mcsc<-get_mcsc_2018_GIR()()}else if(prov=="LLE"){mcsc<-get_mcsc_2018_LLE()()}
+          if(prov=="BCN"){mcsc<-get_mcsc_2018_BCN()}else if(prov=="TAR"){mcsc<-get_mcsc_2018_TAR()}else if(prov=="GIR"){mcsc<-get_mcsc_2018_GIR()}else if(prov=="LLE"){mcsc<-get_mcsc_2018_LLE()}
         }
         mcsc <- project_EPSG_25831_rast(mcsc)
         extr <- exact_extract(mcsc, gBuffer(ifn4,byid=T,width=radius))
         rm(mcsc)
         gc()
         
-        clust <- makeCluster(3)
+        clust <- makeCluster(2)
         clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
         prop <- parLapply(clust, extr, function(e){table(e$value)})
         prop <- parLapply(clust, prop, calc_prop)
