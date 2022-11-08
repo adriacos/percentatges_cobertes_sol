@@ -77,10 +77,10 @@ ini_ <- function(radius){
     }
   } else{
     provs <- c("BCN", "TAR", "GIR", "LLE")
-    raw_provs_2009 <- list()
-    raw_provs_2018 <- list()
-    recl_provs_2009 <- list()
-    recl_provs_2018 <- list()
+    raw_provs_2009 <- NULL
+    raw_provs_2018 <- NULL
+    recl_provs_2009 <- NULL
+    recl_provs_2018 <- NULL
     for(prov in provs){
       if(prov=="BCN"){ifn4<-get_ifn4_BCN()}else if(prov=="TAR"){ifn4<-get_ifn4_TAR()}else if(prov=="GIR"){ifn4<-get_ifn4_GIR()}else if(prov=="LLE"){ifn4<-get_ifn4_LLE()}
       ifn4 <- st_cast(ifn4, "POINT")
@@ -99,41 +99,62 @@ ini_ <- function(radius){
         rm(mcsc)
         gc()
         
-        clust <- makeCluster(2)
-        clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
-        prop <- parLapply(clust, extr, function(e){table(e$value)})
-        prop <- parLapply(clust, prop, calc_prop)
-        stopCluster(clust)
+        # clust <- makeCluster(2)
+        # clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
+        # prop <- parLapply(clust, extr, function(e){table(e$value)})
+        # prop <- parLapply(clust, prop, calc_prop)
+        # stopCluster(clust)
+        
+        prop <- lapply(extr, function(e){table(e$value)})
+        #rm(extr)
+        prop <- lapply(prop, calc_prop)
         
         names(prop) <- ifn4$plot_id
         rm(ifn4)
         gc()
         
         prop <- do.call(rbind, prop)
+        prop <- as.data.frame(prop)
         if(year==2009){
-          append(raw_provs_2009, prop)
+          if(is.null(raw_provs_2009)){
+            raw_provs_2009 <- prop
+          }else{
+            raw_provs_2009 <- rbind(raw_provs_2009, prop)  
+          }
         }else{
-          append(raw_provs_2018, prop)
+          if(is.null(raw_provs_2009)){
+            raw_provs_2018 <- prop
+          }else{
+            raw_provs_2018 <- rbind(raw_provs_2018, prop)  
+          }
         }
         prop <- reclass(prop)
         if (year==2009){
-          append(recl_provs_2009, prop)
+          if(is.null(raw_provs_2009)){
+            recl_provs_2009 <- prop
+          }else{
+            recl_provs_2009 <- rbind(recl_provs_2009, prop)  
+          }
         }else{
-          append(recl_provs_2018, prop)
+          if(is.null(recl_provs_2018)){
+            recl_provs_2018 <- prop
+          }else{
+            recl_provs_2018 <- rbind(recl_provs_2018, prop)  
+          }
         }
         rm(clust)
         rm(prop)
         gc()
       }
     }
-    raw_provs_2009 <- do.call(rbind(raw_provs_2009))
-    write.csv(prop,paste("./output/perc_cob_sol_ifn4_2009_", prov, "_", radius,"m_raw.csv", sep=""))
-    raw_provs_2018 <- do.call(rbind(raw_provs_2018))
-    write.csv(prop,paste("./output/perc_cob_sol_ifn4_2018_",prov, "_", radius,"m_raw.csv", sep=""))
-    recl_provs_2009 <- do.call(rbind(recl_provs_2009))
-    write.csv(prop,paste("./output/perc_cob_sol_ifn4_2009_",prov, "_", radius,"m_recl.csv", sep=""))
-    recl_provs_2018 <- do.call(rbind(recl_provs_2018))
-    write.csv(prop,paste("./output/perc_cob_sol_ifn4_2018_",prov, "_", radius,"m_recl.csv", sep=""))
+    #raw_provs_2009 <- do.call(rbind(raw_provs_2009))
+    write.csv(raw_provs_2009,paste("./output/perc_cob_sol_ifn4_2009_", radius,"m_raw.csv", sep=""))
+    #raw_provs_2018 <- do.call(rbind(raw_provs_2018))
+    write.csv(raw_provs_2018,paste("./output/perc_cob_sol_ifn4_2018_", radius,"m_raw.csv", sep=""))
+    #recl_provs_2009 <- do.call(rbind(recl_provs_2009))
+    write.csv(recl_provs_2009,paste("./output/perc_cob_sol_ifn4_2009_", radius,"m_recl.csv", sep=""))
+    #recl_provs_2018 <- do.call(rbind(recl_provs_2018))
+    write.csv(recl_provs_2018,paste("./output/perc_cob_sol_ifn4_2018_", radius,"m_recl.csv", sep=""))
     rm(raw_provs_2009)
     rm(raw_provs_2018)
     rm(recl_provs_2009)
