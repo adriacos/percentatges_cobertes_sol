@@ -14,11 +14,14 @@ library(SpaDES)
 
 ini <- function(){
   #radius <- c(100,200,250,300,500,1000,2000,2500,3000,5000,10000)
-  radius <- c(1000,2000,2500,3000,5000,10000)
-  sapply(radius, ini__)
+  # radius <- c(1000,2000,2500,3000,5000,10000)
+  # sapply(radius, ini__)
+  radius <- 4
+  sapply(radius, ini_)
 }
 
 
+#fer la funció extract pròpia per intentar evitar el problema amb els NA
 
 ini_ <- function(radius){
   print(paste(Sys.time(), "ini", sep="-"))
@@ -40,8 +43,8 @@ ini_ <- function(radius){
       gc()
       
       time <- Sys.time()
-      n.cores <- detectCores()
-      if(radius==100){
+      n.cores <- detectCores()-2
+      if(radius<=100){
         clust <- makeCluster(3)
         clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
         prop <- parLapply(clust, extr, function(e){table(e$value)})
