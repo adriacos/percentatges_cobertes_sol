@@ -14,7 +14,7 @@ library(SpaDES)
 
 ini <- function(){
   #radius <- c(100,200,250,300,500,1000,2000,2500,3000,5000,10000)
-  radius <- c(500,1000,2000,2500,3000,5000,10000)
+  radius <- c(1000,2000,2500,3000,5000,10000)
   sapply(radius, ini__)
 }
 
@@ -272,7 +272,7 @@ ini__ <- function(radius){
         # prop <- lapply(extr, function(e){table(e$value)})
         # prop <- lapply(prop, calc_prop)
         
-        clust <- makeCluster(20)
+        clust <- makeCluster(detectCores()-1)
         clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
         prop <- parLapply(clust, extr, function(e){table(e$value)})
         #prop <- parLapply(clust, prop, calc_prop)
