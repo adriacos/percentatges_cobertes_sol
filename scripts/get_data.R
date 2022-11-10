@@ -22,8 +22,8 @@ get_ifn4_all_prov <- function(){
 
 get_ifn4 <- function(){
   print(paste(Sys.time(), "get_ifn4", sep="-"))
-  #st_read("C:/Users/a.cos/Documents/Tesi/DADES/IFN/IFN_3_CAT.gpkg")
-  st_read("C:/Users/acosd\\Desktop\\CREAF\\IFN3\\IFN_3_CAT.gpkg")
+  st_read("C:/Users/a.cos/Documents/Tesi/DADES/IFN/IFN_3_CAT.gpkg")
+  #st_read("C:/Users/acosd\\Desktop\\CREAF\\IFN3\\IFN_3_CAT.gpkg")
 }
 
 get_quads <- function(){
