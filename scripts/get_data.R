@@ -34,19 +34,19 @@ get_quads <- function(){
 
 get_mcsc_2018_BCN <- function(){
   print(paste(Sys.time(), "get_mcsc_2018", sep="-"))
-  raster("C:\\Users\\a.cos\\Documents\\Tesi\\DADES\\MCSC\\cobertes-sol-v1r0-2018_BCN.tif")
+  raster("C:\\Users\\a.cos\\Documents\\Tesi\\DADES\\MCSC\\cobertes-sol-v1r0-2018_BCN_buf10000.tif")
 }
 get_mcsc_2018_TAR <- function(){
   print(paste(Sys.time(), "get_mcsc_2018", sep="-"))
-  raster("C:\\Users\\a.cos\\Documents\\Tesi\\DADES\\MCSC\\cobertes-sol-v1r0-2018_TAR.tif")
+  raster("C:\\Users\\a.cos\\Documents\\Tesi\\DADES\\MCSC\\cobertes-sol-v1r0-2018_TAR_buf10000.tif")
 }
 get_mcsc_2018_GIR <- function(){
   print(paste(Sys.time(), "get_mcsc_2018", sep="-"))
-  raster("C:\\Users\\a.cos\\Documents\\Tesi\\DADES\\MCSC\\cobertes-sol-v1r0-2018_GIR.tif")
+  raster("C:\\Users\\a.cos\\Documents\\Tesi\\DADES\\MCSC\\cobertes-sol-v1r0-2018_GIR_buf10000.tif")
 }
 get_mcsc_2018_LLE <- function(){
   print(paste(Sys.time(), "get_mcsc_2018", sep="-"))
-  raster("C:\\Users\\a.cos\\Documents\\Tesi\\DADES\\MCSC\\cobertes-sol-v1r0-2018_LLE.tif")
+  raster("C:\\Users\\a.cos\\Documents\\Tesi\\DADES\\MCSC\\cobertes-sol-v1r0-2018_LLE_buf10000.tif")
 }
 get_mcsc_2018_all_prov <- function(){
   list("BCN"=get_mcsc_2018_BCN(), "TAR"=get_mcsc_2018_TAR(), "GIR"=get_mcsc_2018_GIR(), "LLE"=get_mcsc_2018_LLE())
@@ -61,19 +61,19 @@ get_mcsc_2018 <- function(){
 
 get_mcsc_2009_BCN <- function(){
   print(paste(Sys.time(), "get_mcsc_2009", sep="-"))
-  raster("C:\\Users\\a.cos\\Documents\\Tesi\\DADES\\MCSC\\cobertes-sol-v1r0-2009_BCN.tif")
+  raster("C:\\Users\\a.cos\\Documents\\Tesi\\DADES\\MCSC\\cobertes-sol-v1r0-2009_BCN_buf10000.tif")
 }
 get_mcsc_2009_TAR <- function(){
   print(paste(Sys.time(), "get_mcsc_2009", sep="-"))
-  raster("C:\\Users\\a.cos\\Documents\\Tesi\\DADES\\MCSC\\cobertes-sol-v1r0-2009_TAR.tif")
+  raster("C:\\Users\\a.cos\\Documents\\Tesi\\DADES\\MCSC\\cobertes-sol-v1r0-2009_TAR_buf10000.tif")
 }
 get_mcsc_2009_GIR <- function(){
   print(paste(Sys.time(), "get_mcsc_2009", sep="-"))
-  raster("C:\\Users\\a.cos\\Documents\\Tesi\\DADES\\MCSC\\cobertes-sol-v1r0-2009_GIR.tif")
+  raster("C:\\Users\\a.cos\\Documents\\Tesi\\DADES\\MCSC\\cobertes-sol-v1r0-2009_GIR_buf10000.tif")
 }
 get_mcsc_2009_LLE <- function(){
   print(paste(Sys.time(), "get_mcsc_2009", sep="-"))
-  raster("C:\\Users\\a.cos\\Documents\\Tesi\\DADES\\MCSC\\cobertes-sol-v1r0-2009_LLE.tif")
+  raster("C:\\Users\\a.cos\\Documents\\Tesi\\DADES\\MCSC\\cobertes-sol-v1r0-2009_LLE_buf10000.tif")
 }
 get_mcsc_2009_all_prov <- function(){
   list("BCN"=get_mcsc_2009_BCN(), "TAR"=get_mcsc_2009_TAR(), "GIR"=get_mcsc_2009_GIR(), "LLE"=get_mcsc_2009_LLE())
