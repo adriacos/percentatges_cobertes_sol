@@ -15,7 +15,7 @@ library(SpaDES)
 ini <- function(){
   #radius <- c(100,200,250,300,500,1000,2000,2500,3000,5000,10000)
   radius <- c(500,1000,2000,2500,3000,5000,10000)
-  sapply(radius, ini_)
+  sapply(radius, ini__)
 }
 
 
@@ -188,3 +188,178 @@ reclass <- function(df){
 get_plot_ids <- function(ifn4){
   ifn4$plot_id
 }
+
+
+
+ini__ <- function(radius){
+  print(paste(Sys.time(), "ini", sep="-"))
+  print(radius)
+  
+    quads <- get_quads()
+    quads <- as(quads,"Spatial")
+    quads <- project_EPSG_25831_vect(quads)
+    quads$id <- as.numeric(row.names(quads))
+    if(quads[1,]$id == 0){
+      quads$id <- quads$id+1
+    }
+    
+    ifn4 <- get_ifn4()
+    ifn4 <- as(ifn4,"Spatial")
+    ifn4 <- project_EPSG_25831_vect(ifn4)
+    for (year in c(2009, 2018)){
+      print(year)
+      
+      raw <- NULL
+      recl <- NULL
+      
+      if (year==2009){
+        mcsc <- project_EPSG_25831_rast(get_mcsc_2009())
+      }else{
+        mcsc <- project_EPSG_25831_rast(get_mcsc_2018())
+      }
+      
+      for(quad_id in quads$id){
+        print(quad_id)
+        tryCatch(
+          expr = {
+            ifn4_ <- crop(ifn4, quads[quads$id==quad_id,])
+          },
+          error = function(e){ 
+            if(grepl("cannot derive coordinates from non-numeric matrix", e)){
+            #if(e=="<simpleError in .local(obj, ...): cannot derive coordinates from non-numeric matrix>"){
+              print(e)
+            }else{
+              stop(e)
+            }
+          }
+        )
+        if(!exists("ifn4_")){
+          next()
+        }
+        #ifn4_ <- crop(ifn4, quads[quads$id==quad_id,])
+        #ifn4_ <- mask(ifn4_, quads[quads$id==quad_id,])
+        
+        #mcsc_ <- crop(mcsc, buffer(quads[quads$id==quad_id,], width=10000, dissolve=T))
+        #mcsc_ <- mask(mcsc_, buffer(quads[quads$id==quad_id,], width=10000, dissolve=T))
+        
+        extr <- exact_extract(mcsc, gBuffer(ifn4_,byid=T,width=radius))
+        #rm(mcsc_)
+        gc()
+        
+        # prop <- lapply(extr, function(e){table(e$value)})
+        # prop <- lapply(prop, calc_prop)
+        
+        clust <- makeCluster(20)
+        clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
+        prop <- parLapply(clust, extr, function(e){table(e$value)})
+        #prop <- parLapply(clust, prop, calc_prop)
+        stopCluster(clust)
+        
+        # prop <- lapply(extr, function(e){table(e$value)})
+        prop <- lapply(prop, calc_prop)
+        
+        names(prop) <- ifn4_$plot_id
+        rm(ifn4_)
+        gc()
+        
+        prop <- do.call(rbind, prop)
+        prop <- as.data.frame(prop)
+        if(year==2009){
+          if(is.null(raw)){
+            raw <- prop
+          }else{
+            raw <- rbind(raw, prop)  
+          }
+        }else{
+          if(is.null(raw)){
+            raw <- prop
+          }else{
+            raw <- rbind(raw, prop)  
+          }
+        }
+        
+        prop <- reclass(prop)
+        if (year==2009){
+          if(is.null(recl)){
+            recl <- prop
+          }else{
+            recl <- rbind(recl, prop)  
+          }
+        }else{
+          if(is.null(recl)){
+            recl <- prop
+          }else{
+            recl <- rbind(recl, prop)  
+          }
+        }
+        #rm(clust)
+        rm(prop)
+        gc()
+      }
+      if(year==2009){
+        write.csv(raw,paste("./output/perc_cob_sol_ifn4_2009_", radius,"m_raw.csv", sep=""))
+        write.csv(recl,paste("./output/perc_cob_sol_ifn4_2009_", radius,"m_recl.csv", sep=""))
+      }else{
+        write.csv(raw,paste("./output/perc_cob_sol_ifn4_2018_", radius,"m_raw.csv", sep=""))
+        write.csv(recl,paste("./output/perc_cob_sol_ifn4_2018_", radius,"m_recl.csv", sep=""))
+      }
+    }
+    rm(ifn4)
+    rm(mcsc)
+    gc()
+    
+    # write.csv(raw_2009,paste("./output/perc_cob_sol_ifn4_2009_", radius,"m_raw.csv", sep=""))
+    # write.csv(raw_2018,paste("./output/perc_cob_sol_ifn4_2018_", radius,"m_raw.csv", sep=""))
+    # write.csv(recl_2009,paste("./output/perc_cob_sol_ifn4_2009_", radius,"m_recl.csv", sep=""))
+    # write.csv(recl_2018,paste("./output/perc_cob_sol_ifn4_2018_", radius,"m_recl.csv", sep=""))
+    rm(raw)
+    rm(recl)
+    gc()
+  print(paste(Sys.time(), "extract", sep="-"))
+}
+
+
+crop_ifn_by_quad <- function(){
+  quads <- get_quads()
+  quads <- as(quads,"Spatial")
+  quads <- project_EPSG_25831_vect(quads)
+  quads$id <- as.numeric(row.names(quads))
+  if(quads[1,]$id == 0){
+    quads$id <- quads$id+1
+  }
+  ifn4 <- get_ifn4()
+  ifn4 <- as(ifn4,"Spatial")
+  ifn4 <- project_EPSG_25831_vect(ifn4)
+  
+  mcsc_2009 <- project_EPSG_25831_rast(get_mcsc_2009())
+  mcsc_2018 <- project_EPSG_25831_rast(get_mcsc_2018())
+  
+  for(quad_id in quads$id){
+    print(quad_id)
+    tryCatch(
+      expr = {
+        ifn4_ <- crop(ifn4, quads[quads$id==quad_id,])
+      },
+      error = function(e){ 
+        if(grepl("cannot derive coordinates from non-numeric matrix", e)){
+          #if(e=="<simpleError in .local(obj, ...): cannot derive coordinates from non-numeric matrix>"){
+          print(e)
+        }else{
+          stop(e)
+        }
+      }
+    )
+    if(!exists("ifn4_")){
+      next()
+    }
+  
+    mcsc_2009_ <- crop(mcsc, buffer(quads[quads$id==quad_id,], width=10000, dissolve=T))
+    mcsc_2018_ <- crop(mcsc, buffer(quads[quads$id==quad_id,], width=10000, dissolve=T))
+    
+    writeRaster(mcsc_2009_, paste("./files/mcsc2009/",quad_id,".tif", sep=""))
+    writeRaster(mcsc_2018_, paste("./files/mcsc2009/",quad_id,".tif", sep=""))
+    writeOGR(ifn4_, "./files/ifn4", quad_id)
+  }
+}
+
+
