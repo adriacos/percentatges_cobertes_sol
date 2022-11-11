@@ -1,6 +1,6 @@
 source("./scripts/get_data.R")
 source("./scripts/project.R")
-
+source("./scripts/extract.R")
 
 library(raster)
 library(sf)
@@ -14,9 +14,10 @@ library(SpaDES)
 
 ini <- function(){
   #radius <- c(100,200,250,300,500,1000,2000,2500,3000,5000,10000)
+  radius <- c(4, 100)
   # radius <- c(1000,2000,2500,3000,5000,10000)
   # sapply(radius, ini__)
-  radius <- 4
+  #radius <- 4
   sapply(radius, ini_)
 }
 
@@ -27,7 +28,7 @@ ini_ <- function(radius){
   print(paste(Sys.time(), "ini", sep="-"))
   print(radius)
   
-  if(radius<500){
+  if(radius<50000){
     ifn4 <- get_ifn4()
     ifn4 <- as(ifn4,"Spatial")
     ifn4 <- project_EPSG_25831_vect(ifn4)
@@ -38,7 +39,8 @@ ini_ <- function(radius){
       }else{
         mcsc <- project_EPSG_25831_rast(get_mcsc_2018())
       }
-      extr <- exact_extract(mcsc, gBuffer(ifn4,byid=T,width=radius))
+      extr <- extract(gBuffer(ifn4,byid=T,width=radius), mcsc)
+      #extr <- exact_extract(mcsc, gBuffer(ifn4,byid=T,width=radius))
       rm(mcsc)
       gc()
       
@@ -47,19 +49,22 @@ ini_ <- function(radius){
       if(radius<=100){
         clust <- makeCluster(3)
         clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
-        prop <- parLapply(clust, extr, function(e){table(e$value)})
-        prop <- parLapply(clust, prop, calc_prop)
+        #prop <- parLapply(clust, extr, function(e){table(e$value)})
+        prop <- parLapply(clust, extr, calc_prop)
         stopCluster(clust)
         names(prop) <- ifn4$plot_id
       }else if (radius < 500){
         clust <- makeCluster(2)
         clusterExport(clust, c("extr","fill_missing_categories"), envir = environment())
-        prop <- parLapply(clust, extr, function(e){table(e$value)})
-        prop <- parLapply(clust, prop, calc_prop)
+        #prop <- parLapply(clust, extr, function(e){table(e$value)})
+        prop <- parLapply(clust, extr, calc_prop)
         stopCluster(clust)
         names(prop) <- ifn4$plot_id
+      }else{
+        prop <- lapply(extr, calc_prop)
+        names(prop) <- ifn4$plot_id
       }
-      rm(ifn4)
+      #rm(ifn4)
       gc()
       
       prop <- do.call(rbind, prop)
@@ -177,11 +182,11 @@ fill_missing_categories <- function(tab){
 
 calc_prop <- function(tab){
   tab <- tab/sum(tab)
-  if(length(tab)==1){
-    return(NA)
-  }else{
+  # if(length(tab)==1){
+  #   return(NA)
+  # }else{
     return(fill_missing_categories(tab))
-  }
+  # }
 }
 
 reclass <- function(df){
@@ -196,17 +201,8 @@ reclass <- function(df){
   df <- cbind(df, UB = rowSums(df[,c("21","22","23","24","25","26","27","28","29","30","31","32","33","34","35")]))
   df <- cbind(df, AC = rowSums(df[,c("36","37","38","39","40")]))
   
-  
-  # df$LT <- rowSums(df[,c("41","19")], na.rm=T)  
-  # df$AG <- rowSums(df[c("1","2","3","4","5","6")], na.rm=T)
-  # df$BC <- rowSums(df[c("7","8","9","10","11","12","13","15","16","17")], na.rm=T)
-  # df$PT <- rowSums(df[c("14")], na.rm=T) 
-  # df$RC <- rowSums(df[c("18")], na.rm=T) 
-  # df$ZH <- rowSums(df[c("20")], na.rm=T)
-  # df$UB <- rowSums(df[c("21","22","23","24","25","26","27","28","29","30","31","32","33","34","35")], na.rm=T)
-  # df$AC <- rowSums(df[c("36","37","38","39","40")], na.rm=T)
-  
-  df <- df[,c("BC","AG","UB","PT","RC","AC","ZH","LT")]
+
+  df <- df[,c("BC","MT","AG","UB","PT","RC","AC","ZH","LT")]
   #df[is.na(df)] <- 0
   df
 } 
