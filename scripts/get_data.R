@@ -23,7 +23,7 @@ get_ccaa <- function(){
   
 }
 
-get_siose <- funciton(ca, year){
+get_siose <- function(ca, year){
   print(paste(Sys.time(), "get_siose", sep="-"))
   raster(paste("C:\\Users\\acosd\\Desktop\\CREAF\\Mapes\\Cobertes\\SIOSE\\siose_", ca, "_", year, ".tif"), sep="")
 }
